@@ -20,7 +20,7 @@
 namespace qml_ros2_plugin
 {
 
-class Ros2Qml : public QObject
+class Ros2Qml final : public QObject
 {
   Q_OBJECT
 private:
@@ -30,6 +30,8 @@ public:
   static Ros2Qml &getInstance();
 
   Ros2Qml( const Ros2Qml & ) = delete;
+
+  ~Ros2Qml() final;
 
   void operator=( const Ros2Qml & ) = delete;
 
@@ -61,7 +63,7 @@ public:
   bool ok() const;
 
   /*!
-   * Queries the internal ndoe for its topics or using the optional datatype parameter for all topics with the given type.
+   * Queries the internal node for its topics or using the optional datatype parameter for all topics with the given type.
    * @param datatype The message type to filter topics for, e.g., sensor_msgs/Image. Omit to query for all topics.
    * @return A list of topics that matches the given datatype or all topics if no datatype provided.
    */
@@ -79,6 +81,26 @@ public:
    * @return The types available on the topic if found, otherwise an empty string.
    */
   QStringList queryTopicTypes( const QString &name ) const;
+
+  /*!
+   * Queries the internal node for its known topics and their types.
+   * See rclcpp::Node::get_topic_names_and_types() for more information.
+   * @return A map with the topic names as keys and the types as values.
+   */
+  QMap<QString, QStringList> getTopicNamesAndTypes() const;
+
+  /*!
+   * Queries the internal node for its known services and their types.
+   * See rclcpp::Node::get_service_names_and_types() for more information.
+   * @return A map with the service names as keys and the types as values.
+   */
+  QMap<QString, QStringList> getServiceNamesAndTypes() const;
+
+  /*!
+   * Queries the internal node for its known actions and their types.
+   * @return A map with the action names as keys and the types as values.
+   */
+  QMap<QString, QStringList> getActionNamesAndTypes() const;
 
   /*!
    * Creates an empty message for the given message type, e.g., "geometry_msgs/Point".
@@ -100,10 +122,14 @@ public:
   QVariant createEmptyServiceRequest( const QString &datatype ) const;
 
   /*!
-   * A callback queue that is guaranteed to be called on a background thread.
-   * @return A shared pointer to the callback queue.
+   * Creates an empty action goal request for the given action type, e.g., "example_interfaces/action/Fibonacci".
+   * If the action type is known, an empty goal request is returned with all members of the goal message set to their
+   * default values.
+   * If the action type is not found on the current machine, a warning message is printed and null is returned.
+   * @param datatype The action datatype. NOT the goal datatype.
+   * @return A goal request message with all members set to their default.
    */
-  //  std::shared_ptr<ros::CallbackQueue> callbackQueue();
+  QVariant createEmptyActionGoal( const QString &datatype ) const;
 
   //! Increases the dependant counter.
   void registerDependant();
@@ -121,13 +147,7 @@ signals:
   //! Emitted when this ROS node was shut down and it is time to exit.
   void shutdown();
 
-protected slots:
-
-  //  void checkShutdown();
-
 private:
-  //  void onInitialized();
-
   std::thread executor_thread_;
   std::shared_ptr<rclcpp::Context> context_;
   std::shared_ptr<rclcpp::Node> node_;
@@ -179,11 +199,29 @@ public:
   //! @copydoc Ros2Qml::queryTopicTypes
   Q_INVOKABLE QStringList queryTopicTypes( const QString &name ) const;
 
+  //! @copydoc Ros2Qml::getTopicNamesAndTypes
+  Q_INVOKABLE QVariantMap getTopicNamesAndTypes() const;
+
+  Q_INVOKABLE QStringList getTopicTypes( const QString &name ) const;
+
+  //! @copydoc Ros2Qml::getServiceNamesAndTypes
+  Q_INVOKABLE QVariantMap getServiceNamesAndTypes() const;
+
+  Q_INVOKABLE QStringList getServiceTypes( const QString &name ) const;
+
+  //! @copydoc Ros2Qml::getActionNamesAndTypes
+  Q_INVOKABLE QVariantMap getActionNamesAndTypes() const;
+
+  Q_INVOKABLE QStringList getActionTypes( const QString &name ) const;
+
   //! @copydoc Ros2Qml::createEmptyMessage
   Q_INVOKABLE QVariant createEmptyMessage( const QString &datatype ) const;
 
   //! @copydoc Ros2Qml::createEmptyServiceRequest
   Q_INVOKABLE QVariant createEmptyServiceRequest( const QString &datatype ) const;
+
+  //! @copydoc Ros2Qml::createEmptyActionGoal
+  Q_INVOKABLE QVariant createEmptyActionGoal( const QString &datatype ) const;
 
   IO io() const;
 
